@@ -71,6 +71,14 @@ sudo docker volume rm dj-mariadb-data
 
 ## Troubleshooting
 
+- **A judgehost shows "never checked in"**: if it's `example-judgehost1`, ignore it. It is a placeholder from the
+  demo data and is disabled. Your own judgehosts are named `judgedaemon-<machine>-<ID>`. If one of those is
+  missing or not checking in, read its log with `sudo docker logs --tail 30 judgehost-<ID>`:
+  `No submissions in queue ... waiting` means it works; `401` means a wrong password; `Connection refused`,
+  `Could not resolve` or a timeout mean a wrong `DOMSERVER_URL` or a firewall; a `cgroup` error means running
+  `./check_cgroups.sh`.
+- **Changed `config.sh` but the judgehost still uses the old settings**: `start_worker.sh` restarts an existing
+  container as it is. Recreate it: `sudo docker rm -f judgehost-<ID> && ./start_worker.sh <ID>`.
 - **Judgehost exits with a cgroup error**: run `./check_cgroups.sh`. DOMjudge 9 uses cgroup v2 and needs
   kernel 5.19 or newer; Ubuntu 22.04's default kernel is 5.15. Install the HWE kernel or let the script switch to cgroup v1.
 - **Judgehost says `401 Unauthorized`**: `JUDGEDAEMON_PASSWORD` is wrong. Read it from the server with the
