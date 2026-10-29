@@ -1,6 +1,7 @@
 # Starting DOMjudge
 
-Helper scripts for running [DOMjudge](https://www.domjudge.org) with Docker on Ubuntu.
+Helper scripts for running [DOMjudge](https://www.domjudge.org) with Docker on Ubuntu or Debian
+(as root if `sudo` is not installed).
 They start MariaDB, the DOMjudge server (domserver) and any number of judgehosts (workers).
 
 - Trying it on a Windows laptop with WSL: see [docs/wsl-laptop.md](docs/wsl-laptop.md)

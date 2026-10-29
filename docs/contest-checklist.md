@@ -51,10 +51,15 @@ The server and judge machines need three images (about 4 GB in total):
 **USB method (no internet needed on the lab machines):** on your laptop (WSL), where downloading works:
 
 ```bash
-./offline_images.sh save          # for Ubuntu 22.04; use "save noble" if the server runs 24.04
+./offline_images.sh save                    # server runs Ubuntu 22.04
+./offline_images.sh save ubuntu noble       # server runs Ubuntu 24.04
+./offline_images.sh save debian bookworm    # server runs Debian 12
+./offline_images.sh save debian trixie      # server runs Debian 13
 ```
 
-This creates an `offline/` folder (about 1.2 GB) with the three images and the Docker packages for Ubuntu.
+Not sure which? Run `grep VERSION_CODENAME /etc/os-release` on the server.
+This creates an `offline/` folder (about 1.2 GB) with the three images, plus Docker and every package it
+depends on for that system.
 Copy the **whole repository folder** to a USB drive formatted as **exFAT** (FAT32 can't hold files over 4 GB).
 On the lab machine, copy the folder to the home directory, then:
 
@@ -65,7 +70,11 @@ chmod +x *.sh                     # USB drives can lose the "executable" flag
 ```
 
 Don't run `config_docker.sh` on an offline machine. It needs internet for `apt`.
-The Docker packages need `iptables` and `nftables`, which a standard Ubuntu 22.04 install already has.
+
+**On Debian**, `sudo` is often missing. Then run the scripts as root: `su -`, `cd` to the folder,
+and run them the same way. `load` also installs `sudo`; to use it as a normal user afterwards, run
+`usermod -aG sudo <user>` as root and log in again. Debian 12 and 13 kernels are new enough for DOMjudge 9,
+so `check_cgroups.sh` should print `OK` without changes.
 
 ## 3. Install the server
 

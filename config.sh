@@ -36,6 +36,11 @@ DOMSERVER_URL=
 # - On a separate judge machine, paste the value printed by start_server.sh.
 JUDGEDAEMON_PASSWORD=
 
+# Allow running as root on systems without sudo (e.g. Debian installed with a root password).
+if [ "$(id -u)" -eq 0 ] && ! command -v sudo > /dev/null; then
+    sudo() { "$@"; }
+fi
+
 # --- Internal names (normally no need to change) ----------------------------
 DOCKER_NETWORK=domjudge
 MARIADB_CONTAINER=dj-mariadb

@@ -54,7 +54,7 @@ fi
 
 echo -n "Waiting for the domserver to finish setting up"
 for _ in $(seq 120); do
-    if curl -sf -o /dev/null "http://localhost:$DOMSERVER_PORT/"; then
+    if sudo docker exec "$DOMSERVER_CONTAINER" curl -sf -o /dev/null http://localhost/; then
         break
     fi
     echo -n "."
@@ -66,5 +66,12 @@ echo
 etc=/opt/domjudge/domserver/etc
 echo "DOMjudge is running at http://localhost:$DOMSERVER_PORT/"
 echo "Admin login:        admin / $(sudo docker exec "$DOMSERVER_CONTAINER" cat "$etc/initial_admin_password.secret" 2> /dev/null || echo '[see docker logs domserver]')"
-echo "Judgehost password: $(sudo docker exec "$DOMSERVER_CONTAINER" awk '!/^#/ {print $4; exit}' "$etc/restapi.secret" 2> /dev/null || echo '[see docker logs domserver]')"
-echo "(Put the judgehost password in JUDGEDAEMON_PASSWORD in config.sh on separate judge machines.)"
+if sudo docker exec "$DOMSERVER_CONTAINER" grep -q "NOTE(password-mismatch)" "$etc/restapi.secret"; then
+    # The domserver container was recreated on an existing database.
+    echo "Judgehost password: [unknown]"
+    echo "Set a new password for the 'judgehost' user under Jury > Users, then put it in"
+    echo "JUDGEDAEMON_PASSWORD in config.sh (on this machine too)."
+else
+    echo "Judgehost password: $(sudo docker exec "$DOMSERVER_CONTAINER" awk '!/^#/ {print $4; exit}' "$etc/restapi.secret" 2> /dev/null || echo '[see docker logs domserver]')"
+    echo "(Put the judgehost password in JUDGEDAEMON_PASSWORD in config.sh on separate judge machines.)"
+fi

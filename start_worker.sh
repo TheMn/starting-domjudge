@@ -29,9 +29,10 @@ if [ -z "$DOMSERVER_URL" ]; then
     fi
     network_args=(--net "$DOCKER_NETWORK")
     server_url="http://$DOMSERVER_CONTAINER/"
-    if [ -z "$JUDGEDAEMON_PASSWORD" ]; then
-        JUDGEDAEMON_PASSWORD=$(sudo docker exec "$DOMSERVER_CONTAINER" \
-            awk '!/^#/ {print $4; exit}' /opt/domjudge/domserver/etc/restapi.secret)
+    secret=/opt/domjudge/domserver/etc/restapi.secret
+    if [ -z "$JUDGEDAEMON_PASSWORD" ] \
+        && ! sudo docker exec "$DOMSERVER_CONTAINER" grep -q "NOTE(password-mismatch)" "$secret"; then
+        JUDGEDAEMON_PASSWORD=$(sudo docker exec "$DOMSERVER_CONTAINER" awk '!/^#/ {print $4; exit}' "$secret")
     fi
 else
     network_args=()
