@@ -55,6 +55,7 @@ The server and judge machines need three images (about 4 GB in total):
 ./offline_images.sh save ubuntu noble       # server runs Ubuntu 24.04
 ./offline_images.sh save debian bookworm    # server runs Debian 12
 ./offline_images.sh save debian trixie      # server runs Debian 13
+./offline_images.sh save debian bullseye    # server runs Debian 11 (old kernel: see section 4)
 ```
 
 Not sure which? Run `grep VERSION_CODENAME /etc/os-release` on the server.
@@ -103,7 +104,7 @@ On **each** judge machine (or on the server itself):
 ./check_cgroups.sh
 ```
 
-Ubuntu 22.04 may still have kernel **5.15**, which is too old for DOMjudge 9 on cgroup v2. The script tells you
+Ubuntu 22.04 may still have kernel **5.15**, and Debian 11 has **5.10**. Both are too old for DOMjudge 9 on cgroup v2. The script tells you
 what to do. The recommended fix is the newer kernel:
 
 ```bash

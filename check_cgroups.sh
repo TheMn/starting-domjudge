@@ -30,10 +30,15 @@ if [ "$cgroup_fs" = "cgroup2fs" ]; then
         exit 1
     fi
     echo
-    echo "Fix (recommended on Ubuntu 22.04): install the newer HWE kernel and reboot:"
-    echo "    sudo apt install -y linux-generic-hwe-22.04 && sudo reboot"
+    if grep -q "^ID=ubuntu" /etc/os-release; then
+        echo "Option 1 (needs internet): install the newer HWE kernel and reboot:"
+        echo "    sudo apt install -y linux-generic-hwe-22.04 && sudo reboot"
+        echo "Option 2 (works offline): switch this machine to cgroup v1 (needs a reboot)."
+    else
+        echo "Fix (works offline): switch this machine to cgroup v1 (needs a reboot)."
+    fi
     echo
-    read -r -p "Instead switch this machine to cgroup v1 via GRUB now? [y/N] " answer
+    read -r -p "Switch this machine to cgroup v1 via GRUB now? [y/N] " answer
     [ "$answer" = "y" ] || [ "$answer" = "Y" ] || exit 1
 elif [ -f /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes ]; then
     echo "OK: cgroup v1 with memory accounting enabled. You can start judgehosts."
