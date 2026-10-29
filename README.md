@@ -1,41 +1,96 @@
 # Starting DOMjudge
-A simple guide for starting [DOMjudge](http://domjudge.org) using some helper Bash scripts
 
-## Initialization
+Run a complete [DOMjudge](https://www.domjudge.org) contest system (database, web server, judgehosts)
+on **one Ubuntu machine** with Docker. Tested with DOMjudge 9.0.1. Needs Ubuntu 24.04 or newer (or any
+Linux with cgroup v2 and kernel 5.19+), 4+ CPU cores, 8+ GB RAM and 40 GB of free disk.
 
-1. Clone this repository.
-2. Run ```chmod +x *.sh``` command.
+| File | Purpose |
+| --- | --- |
+| `config.sh` | Settings: versions, passwords, port, number of judgehosts |
+| `install.sh` | Installs Docker and downloads the images |
+| `start.sh` | Starts everything and prints the admin password. Safe to run again. |
+| `backup.sh` | Saves the database to `backups/` |
 
-## Start server
+## Coming from the old version of this repo
 
-1. Run ```./config_user_and_grub.sh``` command.
-2. Restart your computer.
-3. You can modify *DOMJUDGE_VERSION* and *MARIADB_VERSION* variables in *config_docker.sh* file (according to the latest released versions). Also, you can leave them unchanged.
-4. Run ```./config_docker.sh``` command.
-5. You can modify *DOMJUDGE_VERSION*, *MYSQL_PASSWORD*, and *MYSQL_ROOT_PASSWORD* variables in *start_server.sh* file. Also, you can leave them unchanged.
-6. Run ```./start_server.sh``` command.
-7. Check [http://localhost:12345](http://localhost:12345) via your Web browser. You should see DOMjudge now!
+The old scripts installed DOMjudge 8.2 and forced the kernel into cgroup v1 mode, which DOMjudge 9 and
+Ubuntu 26.04 don't use. Undo that once:
 
-## Start workers
+```bash
+sudo sed -i '/systemd.unified_cgroup_hierarchy=0/d' /etc/default/grub   # remove the line the old script added
+sudo update-grub
+sudo docker rm -f dj-mariadb domserver $(sudo docker ps -aq --filter name=judgehost)
+sudo reboot
+```
 
-Suppose there is a working server on a machine. It doesn't matter the worker and the server are on the same machine or not; you should start a server beside the worker.
+After the reboot, `stat -fc %T /sys/fs/cgroup` must print `cgroup2fs`.
 
-1. Run ```./config_user_and_grub.sh``` command.
-2. Restart your computer.
-3. You can modify *DOMJUDGE_VERSION* and *MARIADB_VERSION* variables in *config_docker.sh* file (according to the latest released versions). Also, you can leave them unchanged.
-4. Run ```./config_docker.sh``` command.
-5. You can modify *DOMJUDGE_VERSION*, *MYSQL_PASSWORD*, and *MYSQL_ROOT_PASSWORD* variables in *start_server.sh* file. Also, you can leave them unchanged.
-6. Run ```./start_server.sh``` command.
-7. Modify *DOMJUDGE_VERSION*, *SERVER_URL*, and *WORKER_PASSWORD* variables in *start_server.sh* file. The first one should be set to the URL of DOMjudge server, but the second one can have an arbitrary value.
-8. Run ```./start_worker.sh 0``` command.
-9. Now, a single worker (with ID 0) is up. You can start more concurrent workers on the same machine. For the next workers, just run ```./start_worker.sh 1```, ```./start_worker.sh 2``` and so on. The maximum number of workers equals the number of your machine CPU cores.
+## Install and start
 
-## Notes
+```bash
+git clone https://github.com/TheMn/starting-domjudge.git
+cd starting-domjudge
+nano config.sh    # change both passwords (before the first start!) and check TIMEZONE
+./install.sh
+./start.sh        # first start takes a few minutes; prints the admin password
+```
 
-If you get an error like "You have to remove (or rename) that container to be able to reuse that name.", remove those conflicting containers using ```docker stop``` and ```docker rm``` commands with the given IDs. ```sudo``` may be needed as well.
+Then open `http://<server>:12345`, log in as `admin`, and check *Jury > Config checker* and *Jury > Judgehosts*.
+Your judgehosts are `judgehost-1-1`, `judgehost-2-2`, ... You can ignore `example-judgehost1`, which comes
+from the demo data and stays disabled.
 
-## See also
+## Managing it remotely over SSH
 
-- [domjudge/domserver - Docker Hub](https://hub.docker.com/r/domjudge/domserver)
-- [domjudge/judgehost - Docker Hub](https://hub.docker.com/r/domjudge/judgehost)
+Run everything above in an SSH session. To use the web interface from your own computer without
+opening it to the internet, tunnel it:
 
+```bash
+ssh -L 12345:localhost:12345 user@server
+```
+
+Then browse to <http://localhost:12345> on your computer.
+
+## Letting the contestants in
+
+Contestants only need a browser. For lab PCs to reach a server at home:
+
+1. On the home router, forward a port (e.g. `12345`) to the server's local IP, port `12345`.
+   If the internet provider uses CGNAT, port forwarding won't work; ask the provider for a public IP.
+2. Find the public IP (`curl ifconfig.me` on the server). The lab firewall must allow that IP. Home IPs can change,
+   so check it again on contest day.
+3. Test from the lab: `http://<public-IP>:12345`.
+4. Recommended: accept connections only from the university's public IP. Docker bypasses `ufw`, so use:
+   ```bash
+   sudo iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 12345 --ctdir ORIGINAL ! -s <UNIVERSITY_IP> -j DROP
+   ```
+   This rule is lost on reboot; run it again after one. SSH tunnel access keeps working.
+
+The site uses plain HTTP, so passwords travel unencrypted. Give teams contest-only passwords.
+
+## Contest checklist
+
+- Before: delete or disable the `demo` contest, upload problems with jury solutions, create the teams
+  (*Jury > Import / export* for many), set contest times, and print team passwords.
+- Set time limits from how the jury solutions run **on this server**.
+- During: run `./backup.sh` every 15 to 30 minutes and copy the files elsewhere.
+  Watch *Jury > Clarifications* and *Jury > Judgehosts*.
+- Don't update or reboot the server on contest days. If it does reboot, everything starts again
+  automatically; check with `sudo docker ps`.
+
+## Useful commands
+
+```bash
+sudo docker ps -a                     # what is running
+sudo docker logs -f domserver         # server log
+sudo docker logs -f judgehost-1       # judgehost log ("No submissions in queue" = working)
+sudo docker stop $(sudo docker ps -q) # stop everything (./start.sh starts it again)
+```
+
+Start from scratch (**deletes all contest data**):
+
+```bash
+sudo docker rm -f dj-mariadb domserver $(sudo docker ps -aq --filter name=judgehost-)
+sudo docker volume rm dj-mariadb-data
+```
+
+To restore a backup, see the comment at the top of `backup.sh`.
