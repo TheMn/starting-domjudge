@@ -16,7 +16,7 @@ They start MariaDB, the DOMjudge server (domserver) and any number of judgehosts
 | `start_server.sh` | Starts MariaDB and the domserver, then prints the admin and judgehost passwords. |
 | `start_worker.sh <ID>` | Starts judgehost number `<ID>`, pinned to CPU core `<ID>`. |
 | `backup_db.sh` | Saves a compressed database dump to `backups/`. |
-| `offline_images.sh save\|load` | Copies the Docker images to machines without (good) internet access. |
+| `offline_images.sh save\|load` | Installs on machines without internet: `save` puts Docker and the images in `offline/` (copy it by USB), `load` installs them. |
 
 All scripts can be run more than once: existing containers are restarted, not recreated.
 

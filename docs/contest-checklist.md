@@ -11,7 +11,7 @@ Setup assumed here:
 
 | When | What |
 | --- | --- |
-| Now to Oct 31 | Learn DOMjudge on your laptop ([wsl-laptop.md](wsl-laptop.md)). Prepare problem packages, team list, contest settings. Run `./offline_images.sh save` and keep the `.tar` on a USB drive. |
+| Now to Oct 31 | Learn DOMjudge on your laptop ([wsl-laptop.md](wsl-laptop.md)). Prepare problem packages, team list, contest settings. Run `./offline_images.sh save` and copy the repository folder to a USB drive. |
 | By Nov 1 | Get access to the lab server. Install it (sections 1 to 4 below). Upload the real problems and **set time limits on the lab judgehosts**. Create the test-round contest and team accounts. |
 | **Nov 2: test round** | Full rehearsal: same machines, same network, same procedure as the real day. Note every problem. |
 | Nov 3 | Fix what went wrong. Create the real contest (section 6). Take a backup. Print team passwords. |
@@ -48,20 +48,24 @@ The server and judge machines need three images (about 4 GB in total):
   one IP. Retry later, or `docker login` with a free account.
 - **Slow or filtered network.**
 
-**Offline method (recommended as a backup in any case):** on your laptop, where pulling works:
+**USB method (no internet needed on the lab machines):** on your laptop (WSL), where downloading works:
 
 ```bash
-./offline_images.sh save           # creates domjudge-images.tar (1 to 5 GB depending on Docker version)
+./offline_images.sh save          # for Ubuntu 22.04; use "save noble" if the server runs 24.04
 ```
 
-Copy the repository folder including `domjudge-images.tar` to the lab machine, then:
+This creates an `offline/` folder (about 1.2 GB) with the three images and the Docker packages for Ubuntu.
+Copy the **whole repository folder** to a USB drive formatted as **exFAT** (FAT32 can't hold files over 4 GB).
+On the lab machine, copy the folder to the home directory, then:
 
 ```bash
-./offline_images.sh load
+cd ~/starting-domjudge
+chmod +x *.sh                     # USB drives can lose the "executable" flag
+./offline_images.sh load          # installs Docker if missing, then loads the images
 ```
 
-`config_docker.sh` still needs `apt` to install `docker.io`. Without internet, install Docker from `.deb` files
-or ask the lab admins.
+Don't run `config_docker.sh` on an offline machine. It needs internet for `apt`.
+The Docker packages need `iptables` and `nftables`, which a standard Ubuntu 22.04 install already has.
 
 ## 3. Install the server
 
@@ -69,7 +73,7 @@ or ask the lab admins.
 git clone https://github.com/TheMn/starting-domjudge.git   # or copy the folder from USB
 cd starting-domjudge
 nano config.sh             # set new MYSQL_PASSWORD and MYSQL_ROOT_PASSWORD; maybe DOMSERVER_PORT=80
-./config_docker.sh         # or: install docker.io, then ./offline_images.sh load
+./config_docker.sh         # without internet: ./offline_images.sh load instead
 ./start_server.sh
 ```
 
@@ -99,7 +103,8 @@ sudo reboot
 ./check_cgroups.sh        # now it should print OK
 ```
 
-The alternative is letting the script switch the machine to cgroup v1 (it asks first; needs a reboot).
+The alternative, and the only option without internet, is letting the script switch the machine to cgroup v1
+(it asks first; needs a reboot).
 
 Then:
 
